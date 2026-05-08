@@ -20,7 +20,7 @@ jobs:
         brew install cmake
         xcode-select --install || true
 
-    - name: Setup OBS Headers + Framework Stub
+    - name: Setup OBS Headers + Fake Framework
       run: |
         # 下载 OBS headers
         mkdir -p deps/obs-studio
@@ -29,10 +29,10 @@ jobs:
         cp -r /tmp/obs-studio-30.0.0/libobs deps/obs-studio/
         rm -rf /tmp/obs.tar.gz /tmp/obs-studio-30.0.0
 
-        # 创建真实的 framework stub（解决 ld: file is empty）
+        # 创建真正的 framework stub（解决 "file is empty" 错误）
         mkdir -p /tmp/fake-libobs/libobs.framework/Versions/A
-        ln -s Versions/A/libobs /tmp/fake-libobs/libobs.framework/libobs
         touch /tmp/fake-libobs/libobs.framework/Versions/A/libobs
+        ln -sf Versions/A/libobs /tmp/fake-libobs/libobs.framework/libobs
         sudo mkdir -p /Applications/OBS.app/Contents/Frameworks
         sudo rm -rf /Applications/OBS.app/Contents/Frameworks/libobs.framework
         sudo cp -a /tmp/fake-libobs/libobs.framework /Applications/OBS.app/Contents/Frameworks/
@@ -45,13 +45,15 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_OSX_ARCHITECTURES=arm64 \
           -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
-          -DOBS_SOURCE_DIR="$GITHUB_WORKSPACE/deps/obs-studio"
+          -DOBS_SOURCE_DIR="$GITHUB_WORKSPACE/deps/obs-studio" \
+          -DOBS_APP_PATH="/Applications/OBS.app"
 
         cmake --build . --config Release --parallel 2
 
     - name: Package Plugin
       run: |
         cd build
+        # 修正 bundle 结构
         mkdir -p vision-background-removal.plugin/Contents/MacOS
         mkdir -p vision-background-removal.plugin/Contents/Resources
         cp vision-background-removal vision-background-removal.plugin/Contents/MacOS/
