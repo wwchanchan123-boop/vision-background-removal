@@ -16,27 +16,11 @@ jobs:
     - name: Install Dependencies
       run: brew install cmake
 
-    - name: Setup OBS Headers
+    - name: Run Original Build Script
       run: |
-        mkdir -p deps/obs-studio
-        curl -L "https://github.com/obsproject/obs-studio/archive/refs/tags/30.0.0.tar.gz" -o /tmp/obs.tar.gz
-        tar -xzf /tmp/obs.tar.gz -C /tmp
-        cp -r /tmp/obs-studio-30.0.0/libobs deps/obs-studio/
-        rm -rf /tmp/obs.tar.gz /tmp/obs-studio-30.0.0
-
-    - name: Build Plugin
-      run: |
-        mkdir -p build && cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release
-        cmake --build . --config Release --parallel 2
-
-    - name: Package Plugin
-      run: |
-        cd build
-        mkdir -p vision-background-removal.plugin/Contents/MacOS
-        mkdir -p vision-background-removal.plugin/Contents/Resources
-        cp vision-background-removal vision-background-removal.plugin/Contents/MacOS/
-        cp -r ../data/* vision-background-removal.plugin/Contents/Resources/ 2>/dev/null || true
+        chmod +x .github/scripts/build-macos.sh
+        cd .github/scripts
+        ./build-macos.sh
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
