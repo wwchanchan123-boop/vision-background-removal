@@ -20,17 +20,23 @@ jobs:
         brew install cmake
         xcode-select --install || true
 
-    - name: Run Build Script with CI Fix
+    - name: Build Plugin
       run: |
-        # 创建 build 目录并配置 CMake（强制使用 headers，不找 OBS.app）
+        # 下载 OBS headers（和 build-macos.sh 一样）
+        mkdir -p deps/obs-studio
+        curl -L "https://github.com/obsproject/obs-studio/archive/refs/tags/30.0.0.tar.gz" -o /tmp/obs.tar.gz
+        tar -xzf /tmp/obs.tar.gz -C /tmp
+        cp -r /tmp/obs-studio-30.0.0/libobs deps/obs-studio/
+        rm -rf /tmp/obs.tar.gz /tmp/obs-studio-30.0.0
+
+        # 配置并构建
         mkdir -p build && cd build
         
         cmake .. \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_OSX_ARCHITECTURES=arm64 \
-          -DOBS_SOURCE_DIR="$GITHUB_WORKSPACE/deps/obs-studio" \
-          -DOBS_APP_PATH="" \
-          -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
+          -DOBS_SOURCE_DIR="$GITHUB_WORKSPACE/deps/obs-studio"
 
         cmake --build . --config Release --parallel 2
 
