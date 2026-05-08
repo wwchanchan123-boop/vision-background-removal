@@ -20,11 +20,19 @@ jobs:
         brew install cmake
         xcode-select --install || true
 
-    - name: Run Official Build Script
+    - name: Run Build Script with CI Fix
       run: |
-        chmod +x .github/scripts/build-macos.sh
-        cd .github/scripts
-        ./build-macos.sh
+        # 创建 build 目录并配置 CMake（强制使用 headers，不找 OBS.app）
+        mkdir -p build && cd build
+        
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_OSX_ARCHITECTURES=arm64 \
+          -DOBS_SOURCE_DIR="$GITHUB_WORKSPACE/deps/obs-studio" \
+          -DOBS_APP_PATH="" \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0
+
+        cmake --build . --config Release --parallel 2
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
@@ -32,6 +40,6 @@ jobs:
         name: vision-background-removal.plugin
         path: |
           build/vision-background-removal.plugin
-          build/vision-background-removal.plugin/*
+          build/vision-background-removal.plugin/**
         if-no-files-found: error
         retention-days: 30
