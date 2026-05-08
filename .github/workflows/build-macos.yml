@@ -4,7 +4,6 @@ on:
   push:
     branches: [ master, main ]
     tags: [ 'v*' ]
-  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -12,48 +11,28 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
+    - uses: actions/checkout@v6
 
     - name: Install Dependencies
-      run: |
-        brew install cmake
-        xcode-select --install || true
+      run: brew install cmake
 
-    - name: Setup OBS Headers + Fake Framework
+    - name: Setup OBS Headers
       run: |
-        # 下载 OBS headers
         mkdir -p deps/obs-studio
         curl -L "https://github.com/obsproject/obs-studio/archive/refs/tags/30.0.0.tar.gz" -o /tmp/obs.tar.gz
         tar -xzf /tmp/obs.tar.gz -C /tmp
         cp -r /tmp/obs-studio-30.0.0/libobs deps/obs-studio/
         rm -rf /tmp/obs.tar.gz /tmp/obs-studio-30.0.0
 
-        # 创建真正的 framework stub（解决 "file is empty" 错误）
-        mkdir -p /tmp/fake-libobs/libobs.framework/Versions/A
-        touch /tmp/fake-libobs/libobs.framework/Versions/A/libobs
-        ln -sf Versions/A/libobs /tmp/fake-libobs/libobs.framework/libobs
-        sudo mkdir -p /Applications/OBS.app/Contents/Frameworks
-        sudo rm -rf /Applications/OBS.app/Contents/Frameworks/libobs.framework
-        sudo cp -a /tmp/fake-libobs/libobs.framework /Applications/OBS.app/Contents/Frameworks/
-
     - name: Build Plugin
       run: |
         mkdir -p build && cd build
-        
-        cmake .. \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_OSX_ARCHITECTURES=arm64 \
-          -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
-          -DOBS_SOURCE_DIR="$GITHUB_WORKSPACE/deps/obs-studio" \
-          -DOBS_APP_PATH="/Applications/OBS.app"
-
+        cmake .. -DCMAKE_BUILD_TYPE=Release
         cmake --build . --config Release --parallel 2
 
     - name: Package Plugin
       run: |
         cd build
-        # 修正 bundle 结构
         mkdir -p vision-background-removal.plugin/Contents/MacOS
         mkdir -p vision-background-removal.plugin/Contents/Resources
         cp vision-background-removal vision-background-removal.plugin/Contents/MacOS/
@@ -64,5 +43,4 @@ jobs:
       with:
         name: vision-background-removal.plugin
         path: build/vision-background-removal.plugin
-        if-no-files-found: error
         retention-days: 30
