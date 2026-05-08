@@ -20,32 +20,46 @@ jobs:
         brew install cmake
         xcode-select --install || true
 
-    - name: Build Plugin
+    - name: Setup OBS Headers + Framework Stub
       run: |
-        # 下载 OBS headers（和 build-macos.sh 一样）
+        # 下载 headers
         mkdir -p deps/obs-studio
         curl -L "https://github.com/obsproject/obs-studio/archive/refs/tags/30.0.0.tar.gz" -o /tmp/obs.tar.gz
         tar -xzf /tmp/obs.tar.gz -C /tmp
         cp -r /tmp/obs-studio-30.0.0/libobs deps/obs-studio/
         rm -rf /tmp/obs.tar.gz /tmp/obs-studio-30.0.0
 
-        # 配置并构建
+        # 创建 framework stub（解决 linker 错误）
+        mkdir -p /tmp/obs-framework/libobs.framework
+        touch /tmp/obs-framework/libobs.framework/libobs
+        ln -s /tmp/obs-framework/libobs.framework /Applications/OBS.app/Contents/Frameworks/libobs.framework || true
+
+    - name: Build Plugin
+      run: |
         mkdir -p build && cd build
         
         cmake .. \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_OSX_ARCHITECTURES=arm64 \
           -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
-          -DOBS_SOURCE_DIR="$GITHUB_WORKSPACE/deps/obs-studio"
+          -DOBS_SOURCE_DIR="$GITHUB_WORKSPACE/deps/obs-studio" \
+          -DOBS_APP_PATH="/Applications/OBS.app"
 
         cmake --build . --config Release --parallel 2
+
+    - name: Package Plugin
+      run: |
+        cd build
+        mkdir -p vision-background-removal.plugin/Contents/MacOS
+        mkdir -p vision-background-removal.plugin/Contents/Resources
+        cp vision-background-removal vision-background-removal.plugin/Contents/MacOS/
+        cp -r ../data/* vision-background-removal.plugin/Contents/Resources/ 2>/dev/null || true
+        cp ../cmake/Info.plist.in vision-background-removal.plugin/Contents/Info.plist || true
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: vision-background-removal.plugin
-        path: |
-          build/vision-background-removal.plugin
-          build/vision-background-removal.plugin/**
+        path: build/vision-background-removal.plugin
         if-no-files-found: error
         retention-days: 30
