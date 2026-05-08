@@ -20,19 +20,20 @@ jobs:
         brew install cmake
         xcode-select --install || true
 
-    - name: Setup OBS Headers + Framework Stub
+    - name: Setup OBS + Framework Stub
       run: |
-        # 下载 headers
+        # 下载 OBS headers
         mkdir -p deps/obs-studio
         curl -L "https://github.com/obsproject/obs-studio/archive/refs/tags/30.0.0.tar.gz" -o /tmp/obs.tar.gz
         tar -xzf /tmp/obs.tar.gz -C /tmp
         cp -r /tmp/obs-studio-30.0.0/libobs deps/obs-studio/
         rm -rf /tmp/obs.tar.gz /tmp/obs-studio-30.0.0
 
-        # 创建 framework stub（解决 linker 错误）
-        mkdir -p /tmp/obs-framework/libobs.framework
-        touch /tmp/obs-framework/libobs.framework/libobs
-        ln -s /tmp/obs-framework/libobs.framework /Applications/OBS.app/Contents/Frameworks/libobs.framework || true
+        # 创建 fake framework 让 linker 通过
+        mkdir -p /tmp/fake-framework/libobs.framework
+        touch /tmp/fake-framework/libobs.framework/libobs
+        sudo mkdir -p /Applications/OBS.app/Contents/Frameworks
+        sudo ln -sf /tmp/fake-framework/libobs.framework /Applications/OBS.app/Contents/Frameworks/libobs.framework || true
 
     - name: Build Plugin
       run: |
@@ -42,19 +43,17 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_OSX_ARCHITECTURES=arm64 \
           -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
-          -DOBS_SOURCE_DIR="$GITHUB_WORKSPACE/deps/obs-studio" \
-          -DOBS_APP_PATH="/Applications/OBS.app"
+          -DOBS_SOURCE_DIR="$GITHUB_WORKSPACE/deps/obs-studio"
 
         cmake --build . --config Release --parallel 2
 
-    - name: Package Plugin
+    - name: Package Plugin (Fix bundle structure)
       run: |
         cd build
         mkdir -p vision-background-removal.plugin/Contents/MacOS
         mkdir -p vision-background-removal.plugin/Contents/Resources
         cp vision-background-removal vision-background-removal.plugin/Contents/MacOS/
         cp -r ../data/* vision-background-removal.plugin/Contents/Resources/ 2>/dev/null || true
-        cp ../cmake/Info.plist.in vision-background-removal.plugin/Contents/Info.plist || true
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
