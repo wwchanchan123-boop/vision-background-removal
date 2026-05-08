@@ -12,7 +12,8 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v6   # ← 已更新为最新 v6（支持 Node 24）
 
     - name: Install Dependencies
       run: brew install cmake
@@ -24,7 +25,7 @@ jobs:
         cmake --build . --config Release
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4   # 保持 v4 最新版即可
       with:
         name: vision-background-removal.plugin
         path: build/vision-background-removal.plugin
