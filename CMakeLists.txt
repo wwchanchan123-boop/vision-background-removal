@@ -8,6 +8,8 @@ project(${PLUGIN_NAME} VERSION ${PLUGIN_VERSION})
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 set(CMAKE_OBJCXX_STANDARD 17)
 set(CMAKE_OBJCXX_STANDARD_REQUIRED ON)
 
@@ -17,10 +19,10 @@ if(APPLE)
     set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fobjc-arc")
 endif()
 
-# OBS Headers (从 deps 下载)
+# OBS Headers（使用下载的）
 set(OBS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/obs-studio/libobs")
 
-# Source files
+# Sources
 set(PLUGIN_SOURCES
     src/plugin-main.mm
     src/background-removal-filter.mm
@@ -45,7 +47,7 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
     ${OBS_INCLUDE_DIR}/graphics
 )
 
-# macOS 系统框架（去掉 libobs.framework）
+# macOS Frameworks
 if(APPLE)
     find_library(COCOA_FRAMEWORK Cocoa REQUIRED)
     find_library(COREVIDEO_FRAMEWORK CoreVideo REQUIRED)
@@ -78,18 +80,14 @@ if(APPLE)
     )
 endif()
 
-# Compiler options
+# Compiler flags
 target_compile_options(${PLUGIN_NAME} PRIVATE
     -Wall -Wextra -Wno-unused-parameter
     -Wno-gnu-anonymous-struct -Wno-nested-anon-types
 )
 
-# Package
-if(APPLE)
-    set(OBS_PLUGIN_DIR "$ENV{HOME}/Library/Application Support/obs-studio/plugins/${PLUGIN_NAME}")
-endif()
-
-install(TARGETS ${PLUGIN_NAME} BUNDLE DESTINATION "${OBS_PLUGIN_DIR}")
-install(DIRECTORY data/ DESTINATION "${OBS_PLUGIN_DIR}/data")
-
-include(CPack)
+message(STATUS "========================================")
+message(STATUS "OBS Background Removal Plugin for macOS")
+message(STATUS "Version: ${PLUGIN_VERSION}")
+message(STATUS "Target: Apple Silicon (arm64)")
+message(STATUS "========================================")
