@@ -18,19 +18,20 @@ jobs:
     - name: Install Dependencies
       run: |
         brew install cmake
-        # 确保 Xcode Command Line Tools 就绪
         xcode-select --install || true
 
-    - name: Build Plugin
+    - name: Run Official Build Script
       run: |
-        mkdir -p build && cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release
-        cmake --build . --config Release -j2   # 使用 2 个核心加速
+        chmod +x .github/scripts/build-macos.sh
+        cd .github/scripts
+        ./build-macos.sh
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: vision-background-removal.plugin
-        path: build/vision-background-removal.plugin
+        path: |
+          build/vision-background-removal.plugin
+          build/vision-background-removal.plugin/*
         if-no-files-found: error
         retention-days: 30
